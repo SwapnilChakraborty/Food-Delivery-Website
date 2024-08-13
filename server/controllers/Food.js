@@ -1,31 +1,20 @@
 import mongoose from "mongoose";
 import Food from "../models/Food.js";
 
+const createError = (status, message) => {
+  const error = new Error(message);
+  error.status = status;
+  return error;
+};
+
 export const addProducts = async (req, res, next) => {
   try {
     const foodData = req.body;
     if (!Array.isArray(foodData)) {
-      return next(
-        createError(400, "Invalid request. Expected an array of foods.")
-      );
+      return next(createError(400, "Invalid request. Expected an array of foods."));
     }
-    let createdfoods = [];
-    for (const foodInfo of foodData) {
-      const { name, desc, img, price, ingredients, category } = foodInfo;
-      const product = new Food({
-        name,
-        desc,
-        img,
-        price,
-        ingredients,
-        category,
-      });
-      const createdFoods = await product.save();
-      createdfoods.push(createdFoods);
-    }
-    return res
-      .status(201)
-      .json({ message: "Products added successfully", createdfoods });
+    const createdFoods = await Food.insertMany(foodData);
+    return res.status(201).json({ message: "Products added successfully", createdFoods });
   } catch (err) {
     next(err);
   }
@@ -34,33 +23,32 @@ export const addProducts = async (req, res, next) => {
 export const getFoodItems = async (req, res, next) => {
   try {
     let { categories, minPrice, maxPrice, ingredients, search } = req.query;
-    ingredients = ingredients?.split(",");
-    categories = categories?.split(",");
-
     const filter = {};
-    if (categories && Array.isArray(categories)) {
-      filter.category = { $in: categories }; // Match products in any of the specified categories
+
+    if (categories) {
+      categories = categories.split(",");
+      filter.category = { $in: categories };
     }
-    if (ingredients && Array.isArray(ingredients)) {
-      filter.ingredients = { $in: ingredients }; // Match products in any of the specified ingredients
+
+    if (ingredients) {
+      ingredients = ingredients.split(",");
+      filter.ingredients = { $in: ingredients };
     }
-    if (maxPrice || minPrice) {
-      filter["price.org"] = {};
-      if (minPrice) {
-        filter["price.org"]["$gte"] = parseFloat(minPrice);
-      }
-      if (maxPrice) {
-        filter["price.org"]["$lte"] = parseFloat(maxPrice);
-      }
+
+    if (minPrice || maxPrice) {
+      filter.price = {};
+      if (minPrice) filter.price.$gte = parseFloat(minPrice);
+      if (maxPrice) filter.price.$lte = parseFloat(maxPrice);
     }
+
     if (search) {
       filter.$or = [
-        { title: { $regex: new RegExp(search, "i") } }, // Case-insensitive title search
-        { desc: { $regex: new RegExp(search, "i") } }, // Case-insensitive description search
+        { name: { $regex: new RegExp(search, "i") } },
+        { desc: { $regex: new RegExp(search, "i") } },
       ];
     }
-    const foodList = await Food.find(filter);
 
+    const foodList = await Food.find(filter);
     return res.status(200).json(foodList);
   } catch (err) {
     next(err);
