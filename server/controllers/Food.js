@@ -22,6 +22,7 @@ export const addProducts = async (req, res, next) => {
 
 export const getFoodItems = async (req, res, next) => {
   try {
+    console.log("Query parameters:", req.query);
     let { categories, minPrice, maxPrice, ingredients, search } = req.query;
     const filter = {};
 
@@ -37,8 +38,16 @@ export const getFoodItems = async (req, res, next) => {
 
     if (minPrice || maxPrice) {
       filter.price = {};
-      if (minPrice) filter.price.$gte = parseFloat(minPrice);
-      if (maxPrice) filter.price.$lte = parseFloat(maxPrice);
+      if (minPrice) {
+        const parsedMin = parseFloat(minPrice);
+        if (isNaN(parsedMin)) return next(createError(400, "Invalid minPrice"));
+        filter.price.$gte = parsedMin;
+      }
+      if (maxPrice) {
+        const parsedMax = parseFloat(maxPrice);
+        if (isNaN(parsedMax)) return next(createError(400, "Invalid maxPrice"));
+        filter.price.$lte = parsedMax;
+      }
     }
 
     if (search) {
@@ -48,9 +57,11 @@ export const getFoodItems = async (req, res, next) => {
       ];
     }
 
+    console.log("Constructed filter:", filter);
     const foodList = await Food.find(filter);
     return res.status(200).json(foodList);
   } catch (err) {
+    console.error("Error in getFoodItems:", err);
     next(err);
   }
 };
@@ -66,6 +77,28 @@ export const getFoodById = async (req, res, next) => {
       return next(createError(404, "Food not found"));
     }
     return res.status(200).json(food);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// New: Search functionality
+export const searchFoodItems = async (req, res, next) => {
+  try {
+    const { search } = req.query;
+    if (!search) {
+      return next(createError(400, "Search query is missing"));
+    }
+    
+    const filter = {
+      $or: [
+        { name: { $regex: new RegExp(search, "i") } },
+        { desc: { $regex: new RegExp(search, "i") } }
+      ]
+    };
+
+    const results = await Food.find(filter);
+    return res.status(200).json(results);
   } catch (err) {
     next(err);
   }

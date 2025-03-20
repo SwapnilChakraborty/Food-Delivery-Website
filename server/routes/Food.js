@@ -1,9 +1,11 @@
 import express from "express";
-import { addProducts, getFoodById, getFoodItems } from "../controllers/Food.js";
+import { addProducts, getFoodItems, getFoodById, searchFoodItems } from "../controllers/Food.js";
 
 const router = express.Router();
 
-router.post("/add", addProducts);
+// Define routes in proper order: more specific routes first
+router.post("/", addProducts);
+router.get("/search", searchFoodItems); // <-- This should be before any dynamic route
 router.get("/", getFoodItems);
 router.get("/:id", getFoodById);
 

@@ -1,7 +1,7 @@
 import express from "express";
 import * as dotenv from "dotenv";
 import cors from "cors";
-import mongoose from "mongoose";
+import dbConnect from "./config/db.js";
 import UserRoutes from "./routes/User.js";
 import FoodRoutes from "./routes/Food.js";
 
@@ -15,46 +15,27 @@ app.use(express.urlencoded({ extended: true })); // for form data
 app.use("/api/user/", UserRoutes);
 app.use("/api/food/", FoodRoutes);
 
-// Error handler
+// Global error handler
 app.use((err, req, res, next) => {
-  console.error(err.stack); // Log the error stack for debugging
+  console.error(err.stack);
   const status = err.status || 500;
   const message = err.message || "Something went wrong";
-  res.status(status).json({
-    success: false,
-    status,
-    message,
-  });
+  res.status(status).json({ success: false, status, message });
 });
 
+// Default route
 app.get("/", async (req, res) => {
-  res.status(200).json({
-    message: "Hello developers from GFG",
-  });
+  res.status(200).json({ message: "Hello developers from GFG" });
 });
 
-const connectDB = async () => {
-  mongoose.set("strictQuery", true);
-  try {
-    await mongoose.connect(process.env.MONGODB_URL, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-    console.log("Connected to MongoDB");
-  } catch (err) {
-    console.error("Failed to connect to MongoDB");
-    console.error(err);
-    process.exit(1); // Exit the process if the database connection fails
-  }
-};
-
+// Start the server after connecting to MongoDB Atlas
 const startServer = async () => {
   try {
-    await connectDB();
+    await dbConnect();
     const port = process.env.PORT || 5000;
     app.listen(port, () => console.log(`Server started on port ${port}`));
   } catch (error) {
-    console.log(error);
+    console.error("Failed to start server:", error);
   }
 };
 
