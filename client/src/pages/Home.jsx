@@ -6,6 +6,7 @@ import ProductCategoryCard from "../components/cards/ProductCategoryCard";
 import ProductsCard from "../components/cards/ProductsCard";
 import { getAllProducts } from "../api";
 import { CircularProgress } from "@mui/material";
+import { Link } from "react-router-dom"; // Import Link
 
 const Container = styled.div`
   padding: 20px 30px;
@@ -21,6 +22,7 @@ const Container = styled.div`
   }
   background: ${({ theme }) => theme.bg};
 `;
+
 const Section = styled.div`
   max-width: 1400px;
   padding: 32px 16px;
@@ -28,10 +30,12 @@ const Section = styled.div`
   flex-direction: column;
   gap: 28px;
 `;
+
 const Img = styled.img`
   width: 100%;
   max-width: 1200px;
 `;
+
 const Title = styled.div`
   font-size: 28px;
   font-weight: 500;
@@ -39,6 +43,7 @@ const Title = styled.div`
   justify-content: ${({ center }) => (center ? "center" : "space-between")};
   align-items: center;
 `;
+
 const CardWrapper = styled.div`
   display: flex;
   flex-wrap: wrap;
@@ -55,10 +60,14 @@ const Home = () => {
 
   const getProducts = async () => {
     setLoading(true);
-    await getAllProducts().then((res) => {
+    try {
+      const res = await getAllProducts();
       setProducts(res.data);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+    } finally {
       setLoading(false);
-    });
+    }
   };
 
   useEffect(() => {
@@ -68,13 +77,13 @@ const Home = () => {
   return (
     <Container>
       <Section>
-        <Img src={HeaderImage} />
+        <Img src={HeaderImage} alt="Header" />
       </Section>
       <Section>
         <Title>Food Categories</Title>
         <CardWrapper>
-          {category.map((category) => (
-            <ProductCategoryCard category={category} />
+          {category.map((cat, index) => (
+            <ProductCategoryCard key={index} category={cat} />
           ))}
         </CardWrapper>
       </Section>
@@ -86,7 +95,14 @@ const Home = () => {
         ) : (
           <CardWrapper>
             {products.map((product) => (
-              <ProductsCard product={product} />
+              // Wrap each product in a Link to navigate to the order page
+              <Link
+                key={product._id} // assuming product has an _id field
+                to={`/order/${product._id}`}
+                style={{ textDecoration: "none", color: "inherit" }}
+              >
+                <ProductsCard product={product} />
+              </Link>
             ))}
           </CardWrapper>
         )}
